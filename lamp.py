@@ -13,6 +13,7 @@ b = 18
 dt = 0
 
 keepRunning = 1
+saveFile = open('streak', 'w')
 
 GPIO.setup(button, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 GPIO.setup(r, GPIO.OUT);
@@ -22,9 +23,10 @@ red.start(0)
 
 while (keepRunning):
 	GPIO.wait_for_edge(button, GPIO.FALLING)
-	streak  = streak + 1
-	print (streak)
-
+	# will always return 1 for 'yes' Ryan pressed the button
+	streak = streak + 1
+	print(streak)
+	
 	if (streak >= 10):
 		streak = 10
 		keepRunning = 0;
@@ -34,6 +36,8 @@ while (keepRunning):
 	sleep(.2)
 
 print "out of the while loop"
+saveFile.write('1')
+saveFile.close()
 
 red.stop()
 GPIO.cleanup()

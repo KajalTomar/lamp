@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+
 import RPi.GPIO as GPIO
 import time 
 from datetime import datetime
@@ -16,7 +17,7 @@ b = 18
 
 # duty time or something
 dt = 0
-endTime = "13:28:00"
+
 # from 0 to 10
 MIN_BRIGHTNESS = 0;
 MAX_BRIGHTNESS = 10;
@@ -56,22 +57,25 @@ elif (streak < MIN_BRIGHTNESS):
 red  = GPIO.PWM(r, 1000)
 red.start(1.5864**(brightness)-1)
 
-if(streak > 0):
-	streak = streak - 1
+streak = streak - 1;
 
-currentTime = now.strftime("%H:%M:%S")
+startTime = now.strftime("%H:%M:%S")
+endTime = "12:31:00"
 print(currentTime)
 
 # overwrite old streak file with the new file containing the updated streak 
 newStreakFile = open('streak.txt', 'w')
 newStreakFile.write(str(streak));
 
+
+
 newStreakFile.close()
 
 # put something here  for when to stop running (if he doesn't press the button by midnight?)
 
-#EVERYTHING PAST THIS ONLY HAPPENS IF RYAN PRESSES THE BUTTON
-GPIO.wait_for_edge(button, GPIO.FALLING) 
+#  EVERYTHING PAST THIS ONLY HAPPENS IF RYAN PRESSES THE BUTTON
+if ( != endTime)
+PIO.wait_for_edge(button, GPIO.FALLING)
 
 streak = streak + 2;
 
@@ -94,16 +98,13 @@ updateStatFile.close()
 updateStreakFile.close()
 
 try:
-	while(currentTime != endTime):
+	while(1):
 		red.ChangeDutyCycle(dc)
 		time.sleep(.2)
-		now = datetime.now()
-		currentTime = now.strftime("%H:%M:%S")
  
 except KeyboardInterrupt:
 	pass
 
 # if time is certain time then shut off 
-print(currentTime)
 red.stop()
 GPIO.cleanup()

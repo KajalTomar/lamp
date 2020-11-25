@@ -5,105 +5,140 @@ from datetime import datetime
 
 GPIO.setmode(GPIO.BOARD)
 
+# ----------------------------------------------
 # VARIABLES
+# ----------------------------------------------
 
-# for the GPIO pins (using BOARD)
-button = 5
+# ------------------------
+# CONSTANTS
 
-r =  11
-g = 15
-b = 18
+TURN_OFF_TIME = "13:28:00" # military time
 
-# duty time or something
-dt = 0
-endTime = "13:28:00"
 # from 0 to 10
 MIN_BRIGHTNESS = 0;
 MAX_BRIGHTNESS = 10;
 
+# -----------------------
+
+# for the GPIO pins (using BOARD)
+BUTTON = 5
+R =  11 # red
+G = 15 # green
+B = 18 # blue
+
+# for changing the brightness
+dutyCycle 
+streak
+brightness
+
+# date and time
 today = datetime.today()
-now = datetime.now()
 currentDate = today.strftime("%d/%m/%Y")
 
+# colours
+red
+blue
+green
 
-# open file to get current streak value 
-with open('streak.txt', 'r') as streakFile:
-	streak = int(streakFile.read())
+# ----------------------------------------------
+# GPIO setups
+# ----------------------------------------------
 
-streakFile.close()
-#  open the stat file
-statFile = open("stats.txt", "a")
+GPIO.setup(BUTTON, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setup(R, GPIO.OUT);
+   
+# ----------------------------------------------
+# Functions
+# ----------------------------------------------
 
-# add this to the  stats file
-# date | (1 if the button is pressed)
-statFile.write("\n")
-statFile.write(currentDate)
-statFile.write("|0")
+def readStreak():
+	# open file to get current streak value 
+	strk
+	with open('streak.txt', 'r') as streakFile:
+		strk = int(streakFile.read())
+	streakFile.close()
+	return strk
 
-statFile.close()
+def writeToStat(item):
+	statFile = open("stats.txt", "a")
+	# add this to the  stats file
+	statFile.write(item)
+	statFile.close()
 
-GPIO.setup(button, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-GPIO.setup(r, GPIO.OUT);
+def writeToStreak(strk):
+	# overwrite old streak file with the new file containing the updated streak 
+	newStreakFile = open('streak.txt', 'w')
+	newStreakFile.write(str(strk));
+	streakFile.close()
+	
+def setBrightness(strk):
+	bright =  strk
+	if(streak > MAX_BRIGHTNESS):
+		bright = 10
+	elif (streak < MIN_BRIGHTNESS):
+		bright = 0
+	return bright
 
+def updateBrightness(currentBright):
+	bright = currentBright + 1;
+
+	if (bright > 10):
+		bright = 10
+	elif(bright < 0):
+		bright = 0
+	
+	return bright
+	
+def calculateDutyCycle(bright):
+	dc = 1.5864**(bright) - 1
+	return dc
+
+def whatTime():
+	now = datetime.now()
+	currentTime = now.strftime("%H:%M:%S")
+	return currentTime
+
+# ----------------------------------------------
+# Main script
+# ----------------------------------------------
+
+# write this everyday
+writeToStat("n")
+writeToStat(currentDate)
+writeToStat("|0")
+
+streak = readStreak()
 # set up the brightness amount
-brightness =  streak
-
-if(streak > MAX_BRIGHTNESS):
-	brightness = 10
-elif (streak < MIN_BRIGHTNESS):
-	brightness = 0
-
-red  = GPIO.PWM(r, 1000)
-red.start(1.5864**(brightness)-1)
+brightness =  setBrightness(streak)
 
 if(streak > 0):
 	streak = streak - 1
 
-currentTime = now.strftime("%H:%M:%S")
-print(currentTime)
+# update the streak to one less just in case Ryan doesn't press the button today
+writeToStreak(streak)
 
-# overwrite old streak file with the new file containing the updated streak 
-newStreakFile = open('streak.txt', 'w')
-newStreakFile.write(str(streak));
+dutyCycle = calculateDutyCycle(brightness)
+red  = GPIO.PWM(r, 1000)
+red.start(dutyCycle)
 
-newStreakFile.close()
-
-# put something here  for when to stop running (if he doesn't press the button by midnight?)
-
-#EVERYTHING PAST THIS ONLY HAPPENS IF RYAN PRESSES THE BUTTON
 GPIO.wait_for_edge(button, GPIO.FALLING) 
+##### EVERYTHING PAST THIS ONLY HAPPENS IF RYAN PRESSES THE BUTTON ######
 
+# update these values to reflect button pressed
 streak = streak + 2;
+brightness =  updateBrightness(brightness)
+dutyCycle = calculateDutyCycle(brightness)
 
-brightness = brightness + 1;
-
-if (brightness > 10):
-	brightness = 10
-elif(brightness < 0):
-	brightness = 0
-
-dc =  1.5864**(brightness) - 1
-
-updateStatFile =  open("stats.txt", "a")
-updateStatFile.write('1')
-
-updateStreakFile = open("streak.txt", "w")
-updateStreakFile.write(str(streak))
-
-updateStatFile.close()
-updateStreakFile.close()
+# update the files that Ryan pressed the button!
+writeToStat('1')
+writeToStreak(str(streak))
 
 try:
-	while(currentTime != endTime):
-		red.ChangeDutyCycle(dc)
-		time.sleep(.2)
-		now = datetime.now()
-		currentTime = now.strftime("%H:%M:%S")
- 
+	while(whatTime() != TURN_OFF_TIME):
+		red.ChangeDutyCycle(dutyCycle)
+		time.sleep(.2) 
 except KeyboardInterrupt:
 	pass
 
-# if time is certain time then shut off 
-print(currentTime)
 red.stop()
 GPIO.cleanup()

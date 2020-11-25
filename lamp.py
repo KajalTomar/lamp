@@ -26,19 +26,9 @@ R =  11 # red
 G = 15 # green
 B = 18 # blue
 
-# for changing the brightness
-dutyCycle 
-streak
-brightness
-
 # date and time
 today = datetime.today()
 currentDate = today.strftime("%d/%m/%Y")
-
-# colours
-red
-blue
-green
 
 # ----------------------------------------------
 # GPIO setups
@@ -53,9 +43,8 @@ GPIO.setup(R, GPIO.OUT);
 
 def readStreak():
 	# open file to get current streak value 
-	strk
-	with open('streak.txt', 'r') as streakFile:
-		strk = int(streakFile.read())
+	streakFile = open('streak.txt', 'r') 
+	strk = int(streakFile.read())
 	streakFile.close()
 	return strk
 
@@ -68,8 +57,9 @@ def writeToStat(item):
 def writeToStreak(strk):
 	# overwrite old streak file with the new file containing the updated streak 
 	newStreakFile = open('streak.txt', 'w')
-	newStreakFile.write(str(strk));
+	newStreakFile.write(strk);
 	streakFile.close()
+
 	
 def setBrightness(strk):
 	bright =  strk
@@ -86,9 +76,9 @@ def updateBrightness(currentBright):
 		bright = 10
 	elif(bright < 0):
 		bright = 0
-	
+
 	return bright
-	
+
 def calculateDutyCycle(bright):
 	dc = 1.5864**(bright) - 1
 	return dc
@@ -115,13 +105,15 @@ if(streak > 0):
 	streak = streak - 1
 
 # update the streak to one less just in case Ryan doesn't press the button today
-writeToStreak(streak)
+writeToStreak(str(streak))
 
 dutyCycle = calculateDutyCycle(brightness)
 red  = GPIO.PWM(r, 1000)
 red.start(dutyCycle)
 
+# just wait for Ryan to press the button
 GPIO.wait_for_edge(button, GPIO.FALLING) 
+
 ##### EVERYTHING PAST THIS ONLY HAPPENS IF RYAN PRESSES THE BUTTON ######
 
 # update these values to reflect button pressed

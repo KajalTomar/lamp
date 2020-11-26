@@ -16,7 +16,7 @@ TURN_OFF_TIME = "22:00:00" # military time
 
 DC_CONSTANT = 1.5864 # constant used to calculate duty cycle
 # from 0 to 10
-MIN_BRIGHTNESS = 1;
+MIN_BRIGHTNESS = 0;
 MAX_BRIGHTNESS = 10;
 
 # -----------------------
@@ -108,10 +108,10 @@ def setBrightness(strk):
 def updateBrightness(currentBright):
 	bright = currentBright + 1;
 
-	if (bright > MAX_BRIGHTNESS):
-		bright = MAX_BRIGHTNESS
-	elif(bright < MIN_BRIGHTNESS):
-		bright = MIN_BRIGHTNESS
+	if (bright > 10):
+		bright = 10
+	elif(bright < 0):
+		bright = 0
 
 	return bright
 

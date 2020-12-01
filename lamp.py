@@ -51,7 +51,7 @@ GPIO.setup(R, GPIO.OUT);
 #----------------------------------------------------------
 def readStreak():
 	# open file to get current streak value 
-	streakFile = open('streak.txt', 'r') 
+	streakFile = open('/var/www/html/streak.txt', 'r') 
 	strk = int(streakFile.read())
 	streakFile.close()
 	return strk
@@ -64,7 +64,7 @@ def readStreak():
 # INPUT: str 'item' to be appended
 #-----------------------------------------------------------
 def writeToStat(item):
-	statFile = open("stats.txt", "a")
+	statFile = open("/var/www/html/stats.txt", "a")
 	# add this to the  stats file
 	statFile.write(item)
 	statFile.close()
@@ -77,7 +77,7 @@ def writeToStat(item):
 # INPUT: str 'strk' which is the streak value to write.
 #-----------------------------------------------------------
 def writeToStreak(strk): 
-	newStreakFile = open('streak.txt', 'w')
+	newStreakFile = open('/var/www/html/streak.txt', 'w')
 	newStreakFile.write(strk);
 	newStreakFile.close()
 
@@ -176,6 +176,8 @@ GPIO.wait_for_edge(BUTTON, GPIO.FALLING)
 streak = streak + 2;
 brightness =  updateBrightness(brightness)
 dutyCycle = calculateDutyCycle(brightness)
+
+print("Button pressed.")
 
 # update the files that Ryan pressed the button!
 writeToStat('1')

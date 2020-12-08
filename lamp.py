@@ -14,10 +14,11 @@ GPIO.setwarnings(False)
 
 TURN_OFF_TIME = "22:00:00" # military time
 
-DC_CONSTANT = 1.5864 # constant used to calculate duty cycle
-# from 0 to 10
-MIN_BRIGHTNESS = 1;
-MAX_BRIGHTNESS = 10;
+DC_CONSTANT = 4.62606500918 # 4.64158834 # constant used to calculate duty cycle
+
+# from 1 to 3
+MIN_BRIGHTNESS = 0
+MAX_BRIGHTNESS = 3
 
 # -----------------------
 
@@ -30,18 +31,17 @@ B = 18 # blue
 # date and time
 today = datetime.today()
 currentDate = today.strftime("%d/%m/%Y")
-
-# ----------------------------------------------
-# GPIO SETUPS
-# ----------------------------------------------
-
-GPIO.setup(BUTTON, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-GPIO.setup(R, GPIO.OUT);
-   
+  
 # ----------------------------------------------
 # FUNCTIONS
 # ----------------------------------------------
 
+def setup():
+	GPIO.setup(BUTTON, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+	
+	GPIO.setup(R, GPIO.OUT)
+	GPIO.setup(G, GPIO.OUT)
+	GPIO.setup(B, GPIO.OUT)
 #----------------------------------------------------------
 # readStreak
 #
@@ -92,7 +92,7 @@ def writeToStreak(strk):
 def setBrightness(strk):
 	bright =  strk
 	if(streak > MAX_BRIGHTNESS):
-		bright = MAX_BRIGTHNESS
+		bright = MAX_BRIGHTNESS
 	elif (streak < MIN_BRIGHTNESS):
 		bright = MIN_BRIGHTNESS
 	return bright
@@ -123,7 +123,7 @@ def updateBrightness(currentBright):
 # OUTPUT: dc = duty cycle (int)
 #--------------------------------------------------------------
 def calculateDutyCycle(bright):
-	dc = DC_CONSTANT**(bright) - 1
+	dc = DC_CONSTANT**(bright)-1
 	return dc
 
 #--------------------------------------------------------------
@@ -137,9 +137,12 @@ def whatTime():
 	currentTime = now.strftime("%H:%M:%S")
 	return currentTime
 
+	
 # ----------------------------------------------
 # MAIN SCRIPT
 # ----------------------------------------------
+
+setup()
 
 # write this everyday
 # year/month/day|0
@@ -149,14 +152,14 @@ writeToStat("|0")
 
 # read the current streak
 streak = readStreak()
-
+print("streak: "+ str(streak))
 # set up the brightness amount based on current streak
 brightness =  setBrightness(streak)
 
 # subtract one from streak (this will get fixed if Ryan pressed
 # the button.
-if(streak > 0):
-	streak = streak - 1
+oldStreak = streak
+streak = 0
 
 # update the streak file to one less just in case Ryan doesn't 
 # press the button today
@@ -164,33 +167,57 @@ writeToStreak(str(streak))
 
 # calculate PWM and turn on LED!
 dutyCycle = calculateDutyCycle(brightness)
+
 red  = GPIO.PWM(R, 1000)
-red.start(dutyCycle)
+blue  = GPIO.PWM(B, 1000)
+
+print("dutycycle: "+ str(dutyCycle))
+
+if (oldStreak < 3):
+	red.start(dutyCycle)
+elif (oldStreak >= 3):
+	blue.start(dutyCycle)
 
 # just wait for Ryan to press the button
 GPIO.wait_for_edge(BUTTON, GPIO.FALLING) 
 
 ##### EVERYTHING PAST THIS ONLY HAPPENS IF RYAN PRESSES THE BUTTON ######
-
+green = GPIO.PWM(G, 1000)
 # update these values to reflect button pressed
-streak = streak + 2;
+streak = oldStreak + 1
+
 brightness =  updateBrightness(brightness)
 dutyCycle = calculateDutyCycle(brightness)
 
 print("Button pressed.")
-
+print("New streak: " + str(streak))
 # update the files that Ryan pressed the button!
 writeToStat('1')
 writeToStreak(str(streak))
 
 # make the lamp brighter!
 # keep the lamp on unless it is TURN_OFF_TIME or I ctrl+C
+
+print("dutyCycle: " + str(dutyCycle))
 try:
 	while(whatTime() != TURN_OFF_TIME):
-		red.ChangeDutyCycle(dutyCycle)
-		time.sleep(.2) 
+		if(streak < 3):
+			red.ChangeDutyCycle(dutyCycle)
+		elif(streak == 3):
+			green.start(2)
+			green.ChangeDutyCycle(dutyCycle)
+			time.sleep(1.0)
+			blue.start(dutyCycle)
+		else:	
+			#for count in range(0,40):
+			blue.ChangeDutyCycle(dutyCycle)
+		time.sleep(.3)
 except KeyboardInterrupt:
 	pass
 
 red.stop()
+blue.stop()
+green.stop()
+
 GPIO.cleanup()
+

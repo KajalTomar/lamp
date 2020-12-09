@@ -14,7 +14,11 @@ GPIO.setwarnings(False)
 
 TURN_OFF_TIME = "22:00:00" # military time
 
-DC_CONSTANT = 4.62606500918 # 4.64158834 # constant used to calculate duty cycle
+# Ryan has 14 hours (50,400,000 milliseconds) to press the button
+# if we want the lamp to be on from 8am to 10 pm
+TIME_TO_PRESS = 50400000
+
+DC_CONSTANT = 4.62606500918  # constant used to calculate duty cycle
 
 # from 1 to 3
 MIN_BRIGHTNESS = 0
@@ -31,14 +35,14 @@ B = 18 # blue
 # date and time
 today = datetime.today()
 currentDate = today.strftime("%d/%m/%Y")
-  
+
 # ----------------------------------------------
 # FUNCTIONS
 # ----------------------------------------------
 
 def setup():
 	GPIO.setup(BUTTON, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
-	
+
 	GPIO.setup(R, GPIO.OUT)
 	GPIO.setup(G, GPIO.OUT)
 	GPIO.setup(B, GPIO.OUT)
@@ -54,6 +58,11 @@ def readStreak():
 	streakFile = open('/var/www/html/streak.txt', 'r') 
 	strk = int(streakFile.read())
 	streakFile.close()
+
+	# streak can't be negative
+	if(strk < 0):
+		strk = 0
+
 	return strk
 
 #-----------------------------------------------------------
@@ -137,7 +146,6 @@ def whatTime():
 	currentTime = now.strftime("%H:%M:%S")
 	return currentTime
 
-	
 # ----------------------------------------------
 # MAIN SCRIPT
 # ----------------------------------------------
@@ -151,6 +159,7 @@ writeToStat(currentDate)
 # read the current streak
 streak = readStreak()
 print("streak: "+ str(streak))
+
 # set up the brightness amount based on current streak
 brightness =  setBrightness(streak)
 
@@ -159,29 +168,41 @@ dutyCycle = calculateDutyCycle(brightness)
 
 red  = GPIO.PWM(R, 1000)
 blue  = GPIO.PWM(B, 1000)
+green = GPIO.PWM(G, 1000) 
 
 print("dutycycle: "+ str(dutyCycle))
 
-if (streak < 3):
-	red.start(dutyCycle)
-elif (streak >= 3):
-	blue.start(dutyCycle)
-
-# just wait for Ryan to press the button
-button = GPIO.wait_for_edge(BUTTON, GPIO.FALLING, timeout = 60000) 
+if (streak == 1):
+	# yellow
+	red.start(100)
+	green.start(20)
+	blue.start(0)
+elif (streak == 2):
+	#orange
+	red.start(100)
+	green.start(2)
+	blue.start(0)
+elif(streak >= 3):
+	#red
+	red.start(70)
+	green.start(0)
+	blue.start(0)
+# just wait for Ryan to press the button for 14 hours
+button = GPIO.wait_for_edge(BUTTON, GPIO.FALLING, timeout = TIME_TO_PRESS)
 if button is None:
 	#WHEN THE BUTTON IS *NOT* PRESSED
-	writeToStat('|0\n')
+	writeToStat('|0|00:00:00\n')
 	writeToStreak('0')
 	print("The button was not pressed.")
-       	red.stop()
-        blue.stop()
-        green.stop()
+	red.stop()
+	blue.stop()
+	# green.stop()
 
-        GPIO.cleanup()
+	GPIO.cleanup()
 else:
 	##### EVERYTHING PAST THIS ONLY HAPPENS IF RYAN PRESSES THE BUTTON ######
-	green = GPIO.PWM(G, 1000)
+	timePressed = whatTime()
+
 	# update these values to reflect button pressed
 	streak += 1
 
@@ -191,7 +212,7 @@ else:
 	print("Button pressed.")
 	print("New streak: " + str(streak))
 	# update the files that Ryan pressed the button!
-	writeToStat('|1\n')
+	writeToStat('|1|'+str(timePressed)+'\n')
 	writeToStreak(str(streak))
 
 	# make the lamp brighter!
@@ -199,17 +220,32 @@ else:
 
 	print("dutyCycle: " + str(dutyCycle))
 	try:
+		red.stop()
+		green.stop()
+		blue.stop()
+
+		if(streak >= 3):
+		  	#pink
+			red.start(100)
+			green.start(0)
+			blue.start(1)
+			time.sleep(1)
 		while(whatTime() != TURN_OFF_TIME):
-			if(streak < 3):
-				red.ChangeDutyCycle(dutyCycle)
-			elif(streak == 3):
-				green.start(2)
-				green.ChangeDutyCycle(dutyCycle)
-				time.sleep(1.0)
-				blue.start(dutyCycle)
-			else:	
-				#for count in range(0,40):
-				blue.ChangeDutyCycle(dutyCycle)
+			if (streak == 1):
+        			# yellow
+        			red.start(100)
+        			green.start(30)
+        			blue.start(0)
+			elif (streak == 2):
+        			#orange
+        			red.start(100)
+	        		green.start(5)
+        			blue.start(0)
+			elif(streak >= 3):
+				#red
+				red.ChangeDutyCycle(70)
+				green.ChangeDutyCycle(0)
+				blue.ChangeDutyCycle(0)
 			time.sleep(.3)
 	except KeyboardInterrupt:
 		pass

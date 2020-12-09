@@ -145,25 +145,14 @@ def whatTime():
 setup()
 
 # write this everyday
-# year/month/day|0
-writeToStat("\n")
+# year/month/day
 writeToStat(currentDate)
-writeToStat("|0")
 
 # read the current streak
 streak = readStreak()
 print("streak: "+ str(streak))
 # set up the brightness amount based on current streak
 brightness =  setBrightness(streak)
-
-# subtract one from streak (this will get fixed if Ryan pressed
-# the button.
-oldStreak = streak
-streak = 0
-
-# update the streak file to one less just in case Ryan doesn't 
-# press the button today
-writeToStreak(str(streak))
 
 # calculate PWM and turn on LED!
 dutyCycle = calculateDutyCycle(brightness)
@@ -173,16 +162,17 @@ blue  = GPIO.PWM(B, 1000)
 
 print("dutycycle: "+ str(dutyCycle))
 
-if (oldStreak < 3):
+if (streak < 3):
 	red.start(dutyCycle)
-elif (oldStreak >= 3):
+elif (streak >= 3):
 	blue.start(dutyCycle)
 
 # just wait for Ryan to press the button
 button = GPIO.wait_for_edge(BUTTON, GPIO.FALLING, timeout = 60000) 
 if button is None:
 	#WHEN THE BUTTON IS *NOT* PRESSED
-	
+	writeToStat('|0\n')
+	writeToStreak('0')
 	print("The button was not pressed.")
        	red.stop()
         blue.stop()
@@ -193,7 +183,7 @@ else:
 	##### EVERYTHING PAST THIS ONLY HAPPENS IF RYAN PRESSES THE BUTTON ######
 	green = GPIO.PWM(G, 1000)
 	# update these values to reflect button pressed
-	streak = oldStreak + 1
+	streak += 1
 
 	brightness =  updateBrightness(brightness)
 	dutyCycle = calculateDutyCycle(brightness)
@@ -201,7 +191,7 @@ else:
 	print("Button pressed.")
 	print("New streak: " + str(streak))
 	# update the files that Ryan pressed the button!
-	writeToStat('1')
+	writeToStat('|1\n')
 	writeToStreak(str(streak))
 
 	# make the lamp brighter!

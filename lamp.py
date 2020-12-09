@@ -37,7 +37,7 @@ currentDate = today.strftime("%d/%m/%Y")
 # ----------------------------------------------
 
 def setup():
-	GPIO.setup(BUTTON, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+	GPIO.setup(BUTTON, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 	
 	GPIO.setup(R, GPIO.OUT)
 	GPIO.setup(G, GPIO.OUT)
@@ -179,45 +179,54 @@ elif (oldStreak >= 3):
 	blue.start(dutyCycle)
 
 # just wait for Ryan to press the button
-GPIO.wait_for_edge(BUTTON, GPIO.FALLING) 
+button = GPIO.wait_for_edge(BUTTON, GPIO.FALLING, timeout = 60000) 
+if button is None:
+	#WHEN THE BUTTON IS *NOT* PRESSED
+	
+	print("The button was not pressed.")
+       	red.stop()
+        blue.stop()
+        green.stop()
 
-##### EVERYTHING PAST THIS ONLY HAPPENS IF RYAN PRESSES THE BUTTON ######
-green = GPIO.PWM(G, 1000)
-# update these values to reflect button pressed
-streak = oldStreak + 1
+        GPIO.cleanup()
+else:
+	##### EVERYTHING PAST THIS ONLY HAPPENS IF RYAN PRESSES THE BUTTON ######
+	green = GPIO.PWM(G, 1000)
+	# update these values to reflect button pressed
+	streak = oldStreak + 1
 
-brightness =  updateBrightness(brightness)
-dutyCycle = calculateDutyCycle(brightness)
+	brightness =  updateBrightness(brightness)
+	dutyCycle = calculateDutyCycle(brightness)
 
-print("Button pressed.")
-print("New streak: " + str(streak))
-# update the files that Ryan pressed the button!
-writeToStat('1')
-writeToStreak(str(streak))
+	print("Button pressed.")
+	print("New streak: " + str(streak))
+	# update the files that Ryan pressed the button!
+	writeToStat('1')
+	writeToStreak(str(streak))
 
-# make the lamp brighter!
-# keep the lamp on unless it is TURN_OFF_TIME or I ctrl+C
+	# make the lamp brighter!
+	# keep the lamp on unless it is TURN_OFF_TIME or I ctrl+C
 
-print("dutyCycle: " + str(dutyCycle))
-try:
-	while(whatTime() != TURN_OFF_TIME):
-		if(streak < 3):
-			red.ChangeDutyCycle(dutyCycle)
-		elif(streak == 3):
-			green.start(2)
-			green.ChangeDutyCycle(dutyCycle)
-			time.sleep(1.0)
-			blue.start(dutyCycle)
-		else:	
-			#for count in range(0,40):
-			blue.ChangeDutyCycle(dutyCycle)
-		time.sleep(.3)
-except KeyboardInterrupt:
-	pass
+	print("dutyCycle: " + str(dutyCycle))
+	try:
+		while(whatTime() != TURN_OFF_TIME):
+			if(streak < 3):
+				red.ChangeDutyCycle(dutyCycle)
+			elif(streak == 3):
+				green.start(2)
+				green.ChangeDutyCycle(dutyCycle)
+				time.sleep(1.0)
+				blue.start(dutyCycle)
+			else:	
+				#for count in range(0,40):
+				blue.ChangeDutyCycle(dutyCycle)
+			time.sleep(.3)
+	except KeyboardInterrupt:
+		pass
 
-red.stop()
-blue.stop()
-green.stop()
+	red.stop()
+	blue.stop()
+	green.stop()
 
-GPIO.cleanup()
+	GPIO.cleanup()
 
